@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PinNOTE - Suas Notas em Sticky Notes</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <div class="header-content">
+      <div class="logo-section">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"></path>
+          <path d="M9 11h6M9 15h6"></path>
+        </svg>
+        <div>
+          <h1>PinNOTE</h1>
+          <p class="subtitle">Organize suas ideias com elegância</p>
+        </div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="textColorToggle" class="btn-text-color" title="Trocar cor da fonte">
+        <span class="text-color-icon">A</span>
+      </button>
+      <button id="themeToggle" class="btn-theme" title="Alternar modo escuro">
+        <span class="theme-icon">🌙</span>
+      </button>
+      <button id="addNoteBtn" class="btn-add">
+        <span class="btn-plus">+</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="notesContainer" class="notes-container"></main>
+
+  <!-- Color Picker Modal -->
+  <div id="colorPickerModal" class="color-picker-modal">
+    <div class="color-picker-content">
+      <button id="closeColorPicker" class="btn-close-modal">✕</button>
+      <h3>Escolha uma cor</h3>
+      <div class="color-grid">
+        <div class="color-option" data-color="#FFE5E5" title="Rosa Claro"></div>
+        <div class="color-option" data-color="#FFD4E5" title="Rosa"></div>
+        <div class="color-option" data-color="#E5D4FF" title="Roxo Claro"></div>
+        <div class="color-option" data-color="#D4E5FF" title="Azul Claro"></div>
+        <div class="color-option" data-color="#D4F5FF" title="Ciano"></div>
+        <div class="color-option" data-color="#D4FFE5" title="Verde Claro"></div>
+        <div class="color-option" data-color="#FFFFE5" title="Amarelo Claro"></div>
+        <div class="color-option" data-color="#FFEBE5" title="Pêssego"></div>
+        <div class="color-option" data-color="#FFD9D9" title="Rosa Suave"></div>
+        <div class="color-option" data-color="#FFB3D9" title="Magenta"></div>
+        <div class="color-option" data-color="#E5B3FF" title="Roxo"></div>
+        <div class="color-option" data-color="#B3D9FF" title="Azul"></div>
+        <div class="color-option" data-color="#B3F0FF" title="Ciano Vibrante"></div>
+        <div class="color-option" data-color="#B3FFD9" title="Menta"></div>
+        <div class="color-option" data-color="#FFFDB3" title="Amarelo"></div>
+        <div class="color-option" data-color="#FFD4B3" title="Salmão"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
