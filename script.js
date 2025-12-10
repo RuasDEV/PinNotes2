@@ -565,11 +565,9 @@ carregarConfiguracoes();
 carregarNotas();
 atualizarIconeTexto();
 
-
-// filepath: c:\Users\carai\Downloads\PinNOTE-GitHubPages\script.js
 // ...existing code...
+/* --- SUBSTITUIR AQUI: remover a primeira implementação duplicada de tema/ícone --- */
 
-// substituir/atualizar lógica de tema para suportar 4 temas
 const themes = ['light', 'dark', 'sepia', 'forest'];
 const themeEmojis = { light: '🌞', dark: '🌙', sepia: '📜', forest: '🌿' };
 
@@ -589,17 +587,30 @@ function applyTheme(theme) {
   localStorage.setItem('pinnote-theme', theme);
 }
 
+function atualizarIconeTexto() {
+  const isWhite = document.body.classList.contains("text-white");
+  const icon = textColorToggle ? textColorToggle.querySelector(".text-color-icon") : null;
+  if (!icon) return;
+  if (isWhite) {
+    icon.style.color = "white";
+    icon.textContent = "A";
+    textColorToggle.title = "Mudar para preto";
+  } else {
+    icon.style.color = "#1d1d1f";
+    icon.textContent = "A";
+    textColorToggle.title = "Mudar para branco";
+  }
+}
+
 function carregarConfiguracoes() {
   const temaSalvo = localStorage.getItem('pinnote-theme') || 'light';
   const textColorSalva = localStorage.getItem('pinnote-text-color') || 'black';
 
   applyTheme(temaSalvo);
 
-  if (textColorSalva === 'white') {
-    document.body.classList.add('text-white');
-  } else {
-    document.body.classList.remove('text-white');
-  }
+  if (textColorSalva === 'white') document.body.classList.add('text-white');
+  else document.body.classList.remove('text-white');
+
   atualizarIconeTexto();
 }
 
@@ -610,6 +621,16 @@ function toggleTema() {
   applyTheme(next);
 }
 
-// ...existing code...
-themeToggle.onclick = toggleTema;
+function toggleTextColor() {
+  document.body.classList.toggle("text-white");
+  const textColorCurrent = document.body.classList.contains("text-white") ? "white" : "black";
+  localStorage.setItem("pinnote-text-color", textColorCurrent);
+  atualizarIconeTexto();
+}
+
+/* reassociar listeners (se já existirem em outro lugar, remova duplicatas) */
+if (themeToggle) themeToggle.onclick = toggleTema;
+if (textColorToggle) textColorToggle.onclick = toggleTextColor;
+
+/* --- FIM DA SUBSTITUIÇÃO --- */
 // ...existing code...
