@@ -7,6 +7,7 @@ const textColorToggle = document.getElementById("textColorToggle");
 
 let currentNoteForColor = null;
 let lastColorIndex = -1;
+let isDraggingNote = false;
 
 const colors = [
   "#FFE5E5", "#FFD4E5", "#E5D4FF", "#D4E5FF",
@@ -40,7 +41,6 @@ function toggleTema() {
   const temaCurrent = document.body.classList.contains("dark-mode") ? "dark" : "light";
   localStorage.setItem("pinnote-theme", temaCurrent);
   
-  // Atualizar ícone
   themeToggle.textContent = temaCurrent === "dark" ? "☀️" : "🌙";
 }
 
@@ -94,6 +94,25 @@ function carregarNotas() {
   ));
 }
 
+// Converter texto em checklist
+function converterEmChecklist(text) {
+  const linhas = text.split('\n');
+  const listItems = linhas.map(linha => {
+    const trimmed = linha.trim();
+    if (!trimmed) return '';
+    
+    // Verificar se já é um checkbox
+    if (trimmed.startsWith('☐') || trimmed.startsWith('☑')) {
+      return trimmed;
+    }
+    
+    // Converter em checkbox
+    return `☐ ${trimmed}`;
+  }).filter(item => item !== '');
+  
+  return listItems.join('\n');
+}
+
 // Criar nova nota
 function criarNota(texto = "", colorIndex = null, width = null, height = null, fontSize = 15, posX = null, posY = null) {
   // Se não especificar cor, gera uma aleatória
@@ -129,7 +148,6 @@ function criarNota(texto = "", colorIndex = null, width = null, height = null, f
   // Header com botões
   const header = document.createElement("div");
   header.className = "note-header";
-  header.style.cursor = "grab";
 
   // Botão de cor
   const btnCor = document.createElement("button");
@@ -197,12 +215,17 @@ function criarNota(texto = "", colorIndex = null, width = null, height = null, f
 
   header.appendChild(toolbar);
 
-  // Conteúdo editável
+  // Conteúdo editável com checklist
   const textContent = document.createElement("div");
   textContent.className = "note-content";
   textContent.contentEditable = true;
   textContent.spellcheck = "true";
-  textContent.innerText = texto;
+  
+  // Converter texto em checklist se houver conteúdo
+  if (texto) {
+    textContent.innerText = converterEmChecklist(texto);
+  }
+  
   textContent.style.fontSize = fontSize + "px";
 
   // Handle de redimensionamento
@@ -211,12 +234,81 @@ function criarNota(texto = "", colorIndex = null, width = null, height = null, f
   resizeHandle.contentEditable = false;
 
   // Funcionalidades
-  textContent.oninput = () => salvarNotas();
+  textContent.oninput = () => {
+    salvarNotas();
+  };
+
+  // Toggle checkbox ao clicar
+  textContent.onclick = (e) => {
+    if (e.target === textContent) return;
+    
+    const selection = window.getSelection();
+    const range = selection.getRangeAt(0);
+    const clickedNode = range.startContainer;
+    
+    // Encontrar a linha clicada
+    let lineStart = clickedNode.nodeValue ? clickedNode : clickedNode.parentNode;
+    let textNode = clickedNode.nodeValue ? clickedNode : clickedNode.childNodes[0];
+    
+    if (!textNode || !textNode.nodeValue) return;
+    
+    const fullText = textContent.innerText;
+    const linhas = fullText.split('\n');
+    let currentPos = 0;
+    let lineIndex = -1;
+
+    for (let i = 0; i < linhas.length; i++) {
+      const lineLength = linhas[i].length + 1;
+      if (range.startOffset >= currentPos && range.startOffset < currentPos + lineLength) {
+        lineIndex = i;
+        break;
+      }
+      currentPos += lineLength;
+    }
+
+    if (lineIndex >= 0) {
+      const linha = linhas[lineIndex];
+      if (linha.startsWith('☐')) {
+        linhas[lineIndex] = linha.replace('☐', '☑');
+      } else if (linha.startsWith('☑')) {
+        linhas[lineIndex] = linha.replace('☑', '☐');
+      }
+      textContent.innerText = linhas.join('\n');
+      salvarNotas();
+    }
+  };
 
   textContent.onpaste = (e) => {
     e.preventDefault();
-    const texto = e.clipboardData.getData("text/plain");
-    document.execCommand("insertText", false, texto);
+    const pastedText = e.clipboardData.getData("text/plain");
+    const convertedText = converterEmChecklist(pastedText);
+    document.execCommand("insertText", false, convertedText);
+  };
+
+  // Converter para checklist ao pressionar enter
+  textContent.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const selection = window.getSelection();
+      const range = selection.getRangeAt(0);
+      const fullText = textContent.innerText;
+      const beforeCursor = fullText.substring(0, range.startOffset);
+      const afterCursor = fullText.substring(range.startOffset);
+      
+      textContent.innerText = beforeCursor + '\n☐ ' + afterCursor;
+      
+      // Posicionar cursor após o checkbox
+      const newRange = document.createRange();
+      const textNode = textContent.firstChild;
+      if (textNode) {
+        newRange.setStart(textNode, beforeCursor.length + 3);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      }
+      
+      salvarNotas();
+    }
   };
 
   noteWrapper.appendChild(header);
@@ -226,22 +318,23 @@ function criarNota(texto = "", colorIndex = null, width = null, height = null, f
   // Redimensionamento
   implementarRedimensionamento(noteWrapper, resizeHandle);
   
-  // Arrastagem
-  implementarArrastagem(noteWrapper, header);
+  // Arrastagem da nota inteira
+  implementarArrastagem(noteWrapper);
 
   container.appendChild(noteWrapper);
 }
 
-function implementarArrastagem(noteWrapper, header) {
+function implementarArrastagem(noteWrapper) {
   let isDragging = false;
   let startX = 0;
   let startY = 0;
   let startLeft = 0;
   let startTop = 0;
 
-  header.addEventListener("mousedown", (e) => {
-    // Não arrastaria se clicar em um botão
-    if (e.target.tagName === "BUTTON") return;
+  noteWrapper.addEventListener("mousedown", (e) => {
+    // Não arrastaria se clicar em um botão ou na área de texto
+    if (e.target.tagName === "BUTTON" || e.target.className === "note-content") return;
+    if (e.target.closest(".note-toolbar")) return;
     
     isDragging = true;
     startX = e.clientX;
@@ -250,7 +343,7 @@ function implementarArrastagem(noteWrapper, header) {
     startTop = noteWrapper.offsetTop;
     
     noteWrapper.style.zIndex = 1000;
-    header.style.cursor = "grabbing";
+    noteWrapper.style.cursor = "grabbing";
 
     const onMouseMove = (e) => {
       if (!isDragging) return;
@@ -266,7 +359,7 @@ function implementarArrastagem(noteWrapper, header) {
       isDragging = false;
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
-      header.style.cursor = "grab";
+      noteWrapper.style.cursor = "grab";
       noteWrapper.style.zIndex = "auto";
       salvarNotas();
     };
@@ -278,9 +371,10 @@ function implementarArrastagem(noteWrapper, header) {
   });
 
   // Touch support para mobile
-  header.addEventListener("touchstart", (e) => {
-    // Não arrastaria se clicar em um botão
-    if (e.target.tagName === "BUTTON") return;
+  noteWrapper.addEventListener("touchstart", (e) => {
+    // Não arrastaria se clicar em um botão ou na área de texto
+    if (e.target.tagName === "BUTTON" || e.target.className === "note-content") return;
+    if (e.target.closest(".note-toolbar")) return;
     
     isDragging = true;
     startX = e.touches[0].clientX;
@@ -390,12 +484,10 @@ function abrirColorPicker(noteWrapper, colorIndex) {
   currentNoteForColor = noteWrapper;
   colorPickerModal.classList.add("active");
   
-  // Remover seleção anterior
   document.querySelectorAll(".color-option").forEach(el => {
     el.classList.remove("selected");
   });
   
-  // Marcar cor atual
   document.querySelectorAll(".color-option").forEach((el, idx) => {
     if (idx === parseInt(noteWrapper.getAttribute("data-bg"))) {
       el.classList.add("selected");
@@ -428,7 +520,6 @@ colorPickerModal.onclick = (e) => {
   }
 };
 
-// Fechar com ESC
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     fecharColorPicker();
