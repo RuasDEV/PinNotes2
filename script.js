@@ -80,25 +80,6 @@ function gerarCorAleatoria() {
   return novoIndex;
 }
 
-// Auto-resize da nota baseado no conteúdo
-function autoRedimensionarNota(noteWrapper, textContent) {
-  // Resetar altura para calcular o scroll height
-  textContent.style.height = "auto";
-  
-  // Calcular altura necessária
-  const headerHeight = noteWrapper.querySelector(".note-header").offsetHeight || 60;
-  const padding = 48; // padding top + bottom da nota
-  const contentHeight = textContent.scrollHeight;
-  
-  const novaAltura = Math.max(300, headerHeight + contentHeight + padding);
-  const alturaMaxima = 700;
-  
-  if (novaAltura < alturaMaxima) {
-    noteWrapper.style.height = novaAltura + "px";
-    textContent.style.height = (novaAltura - headerHeight - 24) + "px";
-  }
-}
-
 // Carregar notas salvas
 function carregarNotas() {
   const notas = JSON.parse(localStorage.getItem("pinnote")) || [];
@@ -146,13 +127,9 @@ function criarNota(texto = "", colorIndex = null, width = null, height = null, f
   noteWrapper.contentEditable = false;
   noteWrapper.setAttribute("data-bg", colorIndex);
   noteWrapper.setAttribute("data-font-size", fontSize);
-  noteWrapper.setAttribute("data-manual-resize", "false"); // Controlar se foi redimensionado manualmente
   
   if (width) noteWrapper.style.width = width;
-  if (height) {
-    noteWrapper.style.height = height;
-    noteWrapper.setAttribute("data-manual-resize", "true"); // Marcar como redimensionado manualmente
-  }
+  if (height) noteWrapper.style.height = height;
   
   // Posicionamento absoluto
   noteWrapper.style.position = "absolute";
@@ -258,10 +235,6 @@ function criarNota(texto = "", colorIndex = null, width = null, height = null, f
 
   // Funcionalidades
   textContent.oninput = () => {
-    // Auto-resize apenas se não foi redimensionado manualmente
-    if (noteWrapper.getAttribute("data-manual-resize") === "false") {
-      autoRedimensionarNota(noteWrapper, textContent);
-    }
     salvarNotas();
   };
 
@@ -310,13 +283,6 @@ function criarNota(texto = "", colorIndex = null, width = null, height = null, f
     const pastedText = e.clipboardData.getData("text/plain");
     const convertedText = converterEmChecklist(pastedText);
     document.execCommand("insertText", false, convertedText);
-    
-    // Auto-resize após colar
-    setTimeout(() => {
-      if (noteWrapper.getAttribute("data-manual-resize") === "false") {
-        autoRedimensionarNota(noteWrapper, textContent);
-      }
-    }, 10);
   };
 
   // Converter para checklist ao pressionar enter
@@ -341,13 +307,6 @@ function criarNota(texto = "", colorIndex = null, width = null, height = null, f
         selection.addRange(newRange);
       }
       
-      // Auto-resize
-      setTimeout(() => {
-        if (noteWrapper.getAttribute("data-manual-resize") === "false") {
-          autoRedimensionarNota(noteWrapper, textContent);
-        }
-      }, 10);
-      
       salvarNotas();
     }
   };
@@ -361,11 +320,6 @@ function criarNota(texto = "", colorIndex = null, width = null, height = null, f
   
   // Arrastagem da nota inteira
   implementarArrastagem(noteWrapper);
-
-  // Auto-resize inicial
-  setTimeout(() => {
-    autoRedimensionarNota(noteWrapper, textContent);
-  }, 10);
 
   container.appendChild(noteWrapper);
 }
@@ -461,14 +415,6 @@ function alterarTamanhoFonte(noteWrapper, textContent, delta) {
   
   textContent.style.fontSize = newSize + "px";
   noteWrapper.setAttribute("data-font-size", newSize);
-  
-  // Auto-resize após mudar fonte
-  setTimeout(() => {
-    if (noteWrapper.getAttribute("data-manual-resize") === "false") {
-      autoRedimensionarNota(noteWrapper, textContent);
-    }
-  }, 10);
-  
   salvarNotas();
 }
 
@@ -477,8 +423,6 @@ function implementarRedimensionamento(noteWrapper, resizeHandle) {
 
   resizeHandle.addEventListener("mousedown", (e) => {
     isResizing = true;
-    noteWrapper.setAttribute("data-manual-resize", "true"); // Marcar como redimensionado manualmente
-    
     const startX = e.clientX;
     const startY = e.clientY;
     const startWidth = noteWrapper.offsetWidth;
@@ -509,8 +453,6 @@ function implementarRedimensionamento(noteWrapper, resizeHandle) {
 
   resizeHandle.addEventListener("touchstart", (e) => {
     isResizing = true;
-    noteWrapper.setAttribute("data-manual-resize", "true"); // Marcar como redimensionado manualmente
-    
     const startX = e.touches[0].clientX;
     const startY = e.touches[0].clientY;
     const startWidth = noteWrapper.offsetWidth;
@@ -622,3 +564,52 @@ addNoteBtn.onclick = () => criarNota();
 carregarConfiguracoes();
 carregarNotas();
 atualizarIconeTexto();
+
+
+// filepath: c:\Users\carai\Downloads\PinNOTE-GitHubPages\script.js
+// ...existing code...
+
+// substituir/atualizar lógica de tema para suportar 4 temas
+const themes = ['light', 'dark', 'sepia', 'forest'];
+const themeEmojis = { light: '🌞', dark: '🌙', sepia: '📜', forest: '🌿' };
+
+function applyTheme(theme) {
+  // limpar classes de tema existentes
+  document.body.classList.remove('dark-mode', 'theme-sepia', 'theme-forest');
+  // aplicar nova
+  if (theme === 'dark') document.body.classList.add('dark-mode');
+  if (theme === 'sepia') document.body.classList.add('theme-sepia');
+  if (theme === 'forest') document.body.classList.add('theme-forest');
+  // ícone e title
+  if (themeToggle) {
+    themeToggle.textContent = themeEmojis[theme] || '🎨';
+    themeToggle.title = `Tema: ${theme}`;
+  }
+  // persistir
+  localStorage.setItem('pinnote-theme', theme);
+}
+
+function carregarConfiguracoes() {
+  const temaSalvo = localStorage.getItem('pinnote-theme') || 'light';
+  const textColorSalva = localStorage.getItem('pinnote-text-color') || 'black';
+
+  applyTheme(temaSalvo);
+
+  if (textColorSalva === 'white') {
+    document.body.classList.add('text-white');
+  } else {
+    document.body.classList.remove('text-white');
+  }
+  atualizarIconeTexto();
+}
+
+function toggleTema() {
+  const atual = localStorage.getItem('pinnote-theme') || 'light';
+  const idx = themes.indexOf(atual);
+  const next = themes[(idx + 1) % themes.length];
+  applyTheme(next);
+}
+
+// ...existing code...
+themeToggle.onclick = toggleTema;
+// ...existing code...
